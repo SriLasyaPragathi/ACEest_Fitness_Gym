@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  aceest-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aceest-fitness-api
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./aceest_fitness.db:/app/aceest_fitness.db
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - aceest-network
+    
+  # Optional: Database service (if migrating to PostgreSQL in future)
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: aceest-db
+  #   environment:
+  #     POSTGRES_DB: aceest_fitness
+  #     POSTGRES_USER: aceest
+  #     POSTGRES_PASSWORD: secure_password
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - aceest-network
+
+networks:
+  aceest-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
