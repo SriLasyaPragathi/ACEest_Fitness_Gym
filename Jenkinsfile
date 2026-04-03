@@ -91,17 +91,6 @@ pipeline {
                     echo "✅ Coverage report generated"
                 '''
             }
-            post {
-                always {
-                    publishHTML([
-                        reportDir: 'htmlcov',
-                        reportFiles: 'index.html',
-                        reportName: 'Code Coverage',
-                        allowMissing: true,
-                        alwaysLinkToLastBuild: true
-                    ])
-                }
-            }
         }
         
         // ============ STAGE 6: DOCKER BUILD ============
