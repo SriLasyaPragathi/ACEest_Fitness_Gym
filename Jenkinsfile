@@ -77,15 +77,6 @@ pipeline {
                 always {
                     // Archive test results
                     junit 'test-results.xml'
-                    
-                    // Publish test report
-                    publishHTML([
-                        reportDir: 'htmlcov',
-                        reportFiles: 'index.html',
-                        reportName: 'Coverage Report',
-                        allowMissing: true,
-                        alwaysLinkToLastBuild: true
-                    ])
                 }
             }
         }
