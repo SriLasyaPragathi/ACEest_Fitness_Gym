@@ -40,9 +40,9 @@ pipeline {
             steps {
                 echo '📦 Installing Python dependencies...'
                 sh '''
-                    python${PYTHON_VERSION} -m venv venv || python -m venv venv
-                    . venv/bin/activate || . venv/Scripts/activate
-                    python -m pip install --upgrade pip
+                    python -m venv venv
+                    . venv/bin/activate
+                    python -m pip install --upgrade pip setuptools wheel
                     pip install -r requirements.txt
                     echo "✅ Dependencies installed successfully"
                 '''
