@@ -21,7 +21,7 @@ app.config['JSON_SORT_KEYS'] = False
 
 # ======================== DATABASE INITIALIZATION ========================
 def get_db_connection():
-    """Get database connection with proper SQLite configuration"""
+    """Get database connection"""
     conn = sqlite3.connect(DATABASE_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row
     return conn
@@ -103,6 +103,9 @@ def init_db():
     )
     """)
     
+    # Commit all table creations
+    conn.commit()
+    
     # Add default admin user if not exists
     cur.execute("SELECT * FROM users WHERE username='admin'")
     if not cur.fetchone():
@@ -116,7 +119,14 @@ def authenticate_token(f):
     """Decorator to verify authentication token"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        auth_header = request.headers.get('Authorization', '')
+        
+        # Check if Bearer prefix exists
+        if not auth_header.startswith('Bearer '):
+            return jsonify({"error": "Missing or invalid Bearer token"}), 401
+        
+        # Extract token after "Bearer "
+        token = auth_header[7:]  # Length of "Bearer " is 7
         
         if not token:
             return jsonify({"error": "Missing authentication token"}), 401
@@ -414,7 +424,11 @@ def calculate_calories(client_id):
     weight = client['weight']
     program_type = data.get('program_type') or client['program'] or 'Beginner'
     
-    factor = factors.get(program_type, 26)
+    # Validate program type
+    if program_type not in factors:
+        return jsonify({"error": f"Invalid program type: {program_type}. Must be one of {list(factors.keys())}"}), 400
+    
+    factor = factors.get(program_type)
     calories = weight * factor
     
     return jsonify({

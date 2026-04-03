@@ -8,78 +8,109 @@ import pytest
 import sqlite3
 import tempfile
 from datetime import date
+import gc
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app import app, get_db_connection, DATABASE_PATH
+from app import app
+
+# Global test database path
+TEST_DB_PATH = None
 
 
-@pytest.fixture(scope='session')
-def test_db():
-    """Create a temporary test database"""
-    db_fd, db_path = tempfile.mkstemp(suffix='.db')
+def pytest_configure(config):
+    """Create test database before any tests run"""
+    global TEST_DB_PATH
+    db_fd, TEST_DB_PATH = tempfile.mkstemp(suffix='.db')
+    os.close(db_fd)
     
-    # Set environment variable for app to use test database
-    os.environ['DATABASE_PATH'] = db_path
-    
-    # Patch app module database path
+    # Set database path in app module
     import app as app_module
-    app_module.DATABASE_PATH = db_path
+    app_module.DATABASE_PATH = TEST_DB_PATH
     
-    # Initialize database using app's init_db
+    # Initialize database schema
     app_module.init_db()
     
-    # Insert test users into database
-    from app import get_db_connection
-    conn = get_db_connection()
+    # Insert test users (admin is already created by init_db)
+    conn = app_module.get_db_connection()
     cur = conn.cursor()
     
+    # Insert user1 (admin already exists from init_db)
     try:
-        cur.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-                   ('admin', 'admin', 'Admin'))
         cur.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
                    ('user1', 'pass123', 'User'))
         conn.commit()
     except sqlite3.IntegrityError:
-        pass  # Users might already exist
+        pass  # User might already exist
     finally:
         conn.close()
+
+
+def pytest_unconfigure(config):
+    """Clean up test database after all tests"""
+    global TEST_DB_PATH
+    if TEST_DB_PATH and os.path.exists(TEST_DB_PATH):
+        try:
+            os.unlink(TEST_DB_PATH)
+        except:
+            pass
+
+
+@pytest.fixture(autouse=True)
+def reset_database():
+    """Reset database state before each test"""
+    # Force garbage collection to close any dangling connections
+    gc.collect()
     
-    yield db_path
+    yield
     
-    # Cleanup
+    # Cleanup after each test
     try:
-        os.close(db_fd)
-    except:
+        import app as app_module
+        conn = app_module.get_db_connection()
+        cur = conn.cursor()
+        
+        # Delete all test data (keep users)
+        cur.execute("DELETE FROM clients")
+        cur.execute("DELETE FROM progress")
+        cur.execute("DELETE FROM workouts")
+        cur.execute("DELETE FROM exercises")
+        cur.execute("DELETE FROM metrics")
+        
+        conn.commit()
+        conn.close()
+    except Exception as e:
         pass
-    try:
-        os.unlink(db_path)
-    except:
-        pass
+    
+    # Force cleanup of connections
+    gc.collect()
 
 
 @pytest.fixture
-def client(test_db):
-    """Create a test Flask client with proper database configuration"""
-    # Close any existing connections
-    sqlite3.connect(test_db).close()
-    
-    # Configure Flask to use test database
-    app.config['TESTING'] = True
-    app.config['DATABASE_PATH'] = test_db
-    
-    # Patch the app module's DATABASE_PATH
+def client():
+    """Create Flask test client for each test"""
     import app as app_module
-    app_module.DATABASE_PATH = test_db
+    
+    # Configure app for testing
+    app.config['TESTING'] = True
+    app.config['DATABASE_PATH'] = TEST_DB_PATH
+    app_module.DATABASE_PATH = TEST_DB_PATH
     
     # Create test client
-    with app.test_client() as client:
-        yield client
+    test_client = app.test_client()
     
-    # Clean up: close any open connections
-    import gc
-    gc.collect()  # Force garbage collection to close connections
+    yield test_client
+    
+    # Cleanup
+    test_client = None
+    gc.collect()
+
+
+@pytest.fixture
+def test_db():
+    """Direct database access fixture for database tests"""
+    return TEST_DB_PATH
 
 
 @pytest.fixture
