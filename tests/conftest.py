@@ -20,101 +20,66 @@ def test_db():
     """Create a temporary test database"""
     db_fd, db_path = tempfile.mkstemp(suffix='.db')
     
-    # Override DATABASE_PATH for testing
+    # Set environment variable for app to use test database
     os.environ['DATABASE_PATH'] = db_path
     
-    # Initialize schema
-    conn = sqlite3.connect(db_path)
+    # Patch app module database path
+    import app as app_module
+    app_module.DATABASE_PATH = db_path
+    
+    # Initialize database using app's init_db
+    app_module.init_db()
+    
+    # Insert test users into database
+    from app import get_db_connection
+    conn = get_db_connection()
     cur = conn.cursor()
     
-    # Create tables
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        username TEXT PRIMARY KEY,
-        password TEXT,
-        role TEXT
-    )
-    """)
-    
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS clients (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE,
-        age INTEGER,
-        height REAL,
-        weight REAL,
-        program TEXT,
-        calories INTEGER,
-        target_weight REAL,
-        target_adherence INTEGER,
-        membership_status TEXT,
-        membership_end TEXT
-    )
-    """)
-    
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS progress (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        client_name TEXT,
-        week TEXT,
-        adherence INTEGER
-    )
-    """)
-    
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS workouts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        client_name TEXT,
-        date TEXT,
-        workout_type TEXT,
-        duration_min INTEGER,
-        notes TEXT
-    )
-    """)
-    
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS exercises (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        workout_id INTEGER,
-        name TEXT,
-        sets INTEGER,
-        reps INTEGER,
-        weight REAL
-    )
-    """)
-    
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS metrics (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        client_name TEXT,
-        date TEXT,
-        weight REAL,
-        waist REAL,
-        bodyfat REAL
-    )
-    """)
-    
-    # Insert test users
-    cur.execute("INSERT INTO users VALUES (?, ?, ?)", ('admin', 'admin', 'Admin'))
-    cur.execute("INSERT INTO users VALUES (?, ?, ?)", ('user1', 'pass123', 'User'))
-    
-    conn.commit()
-    conn.close()
+    try:
+        cur.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+                   ('admin', 'admin', 'Admin'))
+        cur.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+                   ('user1', 'pass123', 'User'))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        pass  # Users might already exist
+    finally:
+        conn.close()
     
     yield db_path
     
     # Cleanup
-    os.close(db_fd)
-    os.unlink(db_path)
+    try:
+        os.close(db_fd)
+    except:
+        pass
+    try:
+        os.unlink(db_path)
+    except:
+        pass
 
 
 @pytest.fixture
 def client(test_db):
-    """Create a test Flask client"""
-    app.config['TESTING'] = True
+    """Create a test Flask client with proper database configuration"""
+    # Close any existing connections
+    sqlite3.connect(test_db).close()
     
+    # Configure Flask to use test database
+    app.config['TESTING'] = True
+    app.config['DATABASE_PATH'] = test_db
+    
+    # Patch the app module's DATABASE_PATH
+    import app as app_module
+    app_module.DATABASE_PATH = test_db
+    
+    # Create test client
     with app.test_client() as client:
         yield client
+    
+    # Clean up: close any open connections
+    import gc
+    gc.collect()  # Force garbage collection to close connections
 
 
 @pytest.fixture

@@ -21,8 +21,8 @@ app.config['JSON_SORT_KEYS'] = False
 
 # ======================== DATABASE INITIALIZATION ========================
 def get_db_connection():
-    """Get database connection"""
-    conn = sqlite3.connect(DATABASE_PATH)
+    """Get database connection with proper SQLite configuration"""
+    conn = sqlite3.connect(DATABASE_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -744,9 +744,14 @@ def internal_error(error):
     return jsonify({"error": "Internal server error"}), 500
 
 # ======================== APPLICATION ENTRY POINT ========================
-if __name__ == "__main__":
-    # Initialize database
+
+# Initialize database on app startup (for both pytest and flask run)
+try:
     init_db()
+except Exception as e:
+    pass  # Database might already be initialized
+
+if __name__ == "__main__":
     
     # Run Flask app
     app.run(
