@@ -1,36 +1,10 @@
 # ACEest Fitness & Gym Management System
 
-A comprehensive, production-ready Flask REST API for fitness gym management with role-based access control, client management, workout tracking, and advanced reporting capabilities.
 
-## 📋 Table of Contents
+ACEest Fitness & Gym is a Flask REST API for managing fitness operations. The application uses SQLite for persistent storage and demonstrates a complete DevOps workflow:
 
-- [Features](#features)
-- [Architecture](#architecture)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Running Locally](#running-locally)
-- [Docker Deployment](#docker-deployment)
-- [API Endpoints](#api-endpoints)
-- [Authentication](#authentication)
-- [Testing](#testing)
-- [CI/CD Pipeline](#cicd-pipeline)
-- [Database Schema](#database-schema)
-- [Troubleshooting](#troubleshooting)
+**Stack:** Flask | SQLite | Pytest | Docker | GitHub | GitHub Actions | Jenkins
 
----
-
-## ✨ Features
-
-### Core Functionality
-- **Role-Based Authentication:** Admin and User roles with token-based authentication
-- **Client Management:** Complete CRUD operations for fitness clients
-- **Program Management:** AI-style fitness program generation (Fat Loss, Muscle Gain, Beginner)
-- **Calorie Calculation:** Automatic calorie recommendations based on program and weight
-- **Progress Tracking:** Weekly adherence tracking and historical data
-- **Workout Logging:** Comprehensive workout and exercise tracking
-- **Membership Management:** Status tracking and renewal dates
-- **Metrics Logging:** Weight, waist, and body fat tracking
-- **PDF Reports:** Generate professional client reports
 
 ### Technical Features
 - RESTful API design with JSON responses
@@ -44,7 +18,7 @@ A comprehensive, production-ready Flask REST API for fitness gym management with
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 ```
 ACEest Fitness API
@@ -62,8 +36,22 @@ ACEest Fitness API
 ```
 
 ---
+### Key Files & Directories
 
-## 📦 Prerequisites
+| File/Directory | Purpose 
+|---|---|
+| **app.py** | Main Flask REST API application |
+| **requirements.txt** | Python dependencies (Flask 3.0.0, pytest, docker, etc.) | 
+| **tests/** | 79 comprehensive unit tests achieving 80%+ coverage |
+| **Dockerfile** | Multi-stage Docker image |
+| **docker-compose.yml** | Container orchestration | 
+| **Jenkinsfile** | 7-stage Jenkins CI/CD pipeline | 
+| **.github/workflows/main.yml** | GitHub Actions pipeline for automated CI/CD |
+| **aceest_fitness.db** | SQLite database | 
+
+---
+
+##  Prerequisites
 
 ### For Local Development
 - Python 3.8 or higher
@@ -79,7 +67,7 @@ ACEest Fitness API
 
 ---
 
-## 🚀 Installation
+##  Installation
 
 ### 1. Clone the Repository
 ```bash
@@ -110,7 +98,7 @@ python -c "import flask; print('Flask version:', flask.__version__)"
 
 ---
 
-## 🏃 Running Locally
+##  Running Locally
 
 ### 1. Start the Flask Application
 ```bash
@@ -166,7 +154,7 @@ curl http://localhost:5000/api/clients \
 
 ---
 
-## 🐳 Docker Deployment
+##  Docker Deployment
 
 ### Build Docker Image
 ```bash
@@ -219,7 +207,7 @@ curl http://localhost:5000/health
 
 ---
 
-## 📡 API Endpoints
+## API Endpoints
 
 ### Authentication
 | Method | Endpoint | Description |
@@ -266,7 +254,7 @@ curl http://localhost:5000/health
 
 ---
 
-## 🔐 Authentication
+## Authentication
 
 ### Token Format
 ```
@@ -289,7 +277,7 @@ sqlite3 aceest_fitness.db "INSERT INTO users VALUES ('user1','pass123','User')"
 
 ---
 
-## 🧪 Testing
+##  Testing
 
 ### Run All Tests
 ```bash
@@ -319,7 +307,7 @@ docker run --rm aceest:latest pytest
 
 ---
 
-## 🔄 CI/CD Pipeline
+## CI/CD Pipeline
 
 ### GitHub Actions Workflow
 The `.github/workflows/main.yml` file defines the automated pipeline:
@@ -364,7 +352,7 @@ docker run --rm aceest:${BUILD_ID} pytest
 
 ---
 
-## 💾 Database Schema
+## Database Schema
 
 ### Users Table
 ```sql
@@ -440,7 +428,7 @@ CREATE TABLE metrics (
 
 ---
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### Port Already in Use
 ```bash
@@ -492,87 +480,6 @@ docker logs aceest-api
 # Verify network connectivity in Docker
 docker exec aceest-api curl localhost:5000/health
 ```
-
----
-
-## 📚 Example API Usage
-
-### Complete Workflow Example
-
-#### 1. Login
-```bash
-RESPONSE=$(curl -s -X POST http://localhost:5000/api/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin"}')
-TOKEN=$(echo $RESPONSE | grep -o '"token":"[^"]*' | cut -d'"' -f4)
-```
-
-#### 2. Create Client
-```bash
-curl -X POST http://localhost:5000/api/clients \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "John Doe",
-    "age": 30,
-    "weight": 85,
-    "height": 180
-  }'
-```
-
-#### 3. Get Clients
-```bash
-curl http://localhost:5000/api/clients \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-#### 4. Generate Program
-```bash
-curl -X POST http://localhost:5000/api/programs/generate/1 \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"program_type": "Fat Loss"}'
-```
-
-#### 5. Calculate Calories
-```bash
-curl http://localhost:5000/api/calories/1/calculate \
-  -H "Authorization: Bearer $TOKEN"
-```
-
----
-
-## 📝 Notes
-
-- The API uses SQLite for development/testing. Consider PostgreSQL for production.
-- Passwords are stored in plain text for development only. Use hashing (bcrypt) in production.
-- The default admin credentials should be changed in production.
-- Enable HTTPS/TLS for production deployments.
-- Implement rate limiting for API endpoints in production.
-- Add database migrations for schema changes.
-
----
-
-## 🤝 Contributing
-
-1. Create a feature branch: `git checkout -b feature/your-feature`
-2. Make your changes and commit: `git commit -am 'Add feature'`
-3. Push to branch: `git push origin feature/your-feature`
-4. Submit a pull request
-
----
-
-## 📄 License
-
-This project is part of the ACEest Fitness & Gym modernization initiative.
-
----
-
-## 📧 Support
-
-For issues or questions, please open an issue in the GitHub repository or contact the DevOps team.
-
----
 
 **Last Updated:** April 2, 2026  
 **Version:** 1.0.0  
