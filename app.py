@@ -12,6 +12,9 @@ import os
 from flask import Flask, request, jsonify
 from fpdf import FPDF
 
+# Version
+__version__ = "1.0.0"
+
 # Application Configuration
 DB_NAME = "aceest_fitness.db"
 DATABASE_PATH = os.path.join(os.path.dirname(__file__), DB_NAME)

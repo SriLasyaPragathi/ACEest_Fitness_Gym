@@ -1,0 +1,43 @@
+---
+# PersistentVolume for local storage (Minikube)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: aceest-pv
+  namespace: aceest-production
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data/aceest"
+    type: DirectoryOrCreate
+  storageClassName: local-storage
+
+---
+# StorageClass for dynamic provisioning
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-storage
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+
+---
+# PersistentVolumeClaim for the app
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: aceest-pvc
+  namespace: aceest-production
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-storage
+  resources:
+    requests:
+      storage: 1Gi
+  selector:
+    matchLabels:
+      type: aceest-db

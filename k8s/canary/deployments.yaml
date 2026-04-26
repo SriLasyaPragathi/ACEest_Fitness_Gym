@@ -1,0 +1,155 @@
+---
+# Stable Deployment (v1.0.0) - Primary serving traffic
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aceest-stable
+  namespace: aceest-production
+  labels:
+    app: aceest
+    version: stable
+    deployment-strategy: canary
+spec:
+  replicas: 2  # Most traffic served here (66%)
+  selector:
+    matchLabels:
+      app: aceest
+      variant: stable
+  template:
+    metadata:
+      labels:
+        app: aceest
+        variant: stable
+        tier: api
+      annotations:
+        deployment.type: "stable"
+        version: "1.0.0"
+    spec:
+      serviceAccountName: aceest-sa
+      containers:
+      - name: aceest-api
+        image: docker.io/library/aceest-fitness-api:v1.0.0  # Stable version
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 5000
+        envFrom:
+        - configMapRef:
+            name: aceest-config
+        env:
+        - name: VERSION
+          value: "1.0.0"
+        - name: DEPLOYMENT_VARIANT
+          value: "stable"
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        - name: logs
+          mountPath: /app/logs
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 250m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: aceest-pvc
+      - name: logs
+        emptyDir: {}
+      terminationGracePeriodSeconds: 30
+
+---
+# Canary Deployment (v1.0.1) - New version testing
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aceest-canary
+  namespace: aceest-production
+  labels:
+    app: aceest
+    version: canary
+    deployment-strategy: canary
+spec:
+  replicas: 1  # Low traffic initially (33%)
+  selector:
+    matchLabels:
+      app: aceest
+      variant: canary
+  template:
+    metadata:
+      labels:
+        app: aceest
+        variant: canary
+        tier: api
+      annotations:
+        deployment.type: "canary"
+        version: "1.0.1"
+    spec:
+      serviceAccountName: aceest-sa
+      containers:
+      - name: aceest-api
+        image: docker.io/library/aceest-fitness-api:v1.0.1  # New version
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 5000
+        envFrom:
+        - configMapRef:
+            name: aceest-config
+        env:
+        - name: VERSION
+          value: "1.0.1"
+        - name: DEPLOYMENT_VARIANT
+          value: "canary"
+        - name: CANARY_MODE
+          value: "true"
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        - name: logs
+          mountPath: /app/logs
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 250m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: aceest-pvc
+      - name: logs
+        emptyDir: {}
+      terminationGracePeriodSeconds: 30

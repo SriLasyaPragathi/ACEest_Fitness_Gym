@@ -1,0 +1,153 @@
+---
+# Blue Deployment (Current/Stable Version - v1.0.0)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aceest-blue
+  namespace: aceest-production
+  labels:
+    app: aceest
+    version: blue
+    deployment-strategy: blue-green
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: aceest
+      version: blue
+  template:
+    metadata:
+      labels:
+        app: aceest
+        version: blue
+        tier: api
+      annotations:
+        deployment.type: "blue"
+        version: "1.0.0"
+    spec:
+      serviceAccountName: aceest-sa
+      containers:
+      - name: aceest-api
+        image: docker.io/library/aceest-fitness-api:v1.0.0  # Stable version
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 5000
+        envFrom:
+        - configMapRef:
+            name: aceest-config
+        env:
+        - name: VERSION
+          value: "1.0.0"
+        - name: DEPLOYMENT_VARIANT
+          value: "blue"
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        - name: logs
+          mountPath: /app/logs
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 250m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: aceest-pvc
+      - name: logs
+        emptyDir: {}
+      terminationGracePeriodSeconds: 30
+
+---
+# Green Deployment (New Version - v1.0.1)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aceest-green
+  namespace: aceest-production
+  labels:
+    app: aceest
+    version: green
+    deployment-strategy: blue-green
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: aceest
+      version: green
+  template:
+    metadata:
+      labels:
+        app: aceest
+        version: green
+        tier: api
+      annotations:
+        deployment.type: "green"
+        version: "1.0.1"
+    spec:
+      serviceAccountName: aceest-sa
+      containers:
+      - name: aceest-api
+        image: docker.io/library/aceest-fitness-api:v1.0.1  # New version
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 5000
+        envFrom:
+        - configMapRef:
+            name: aceest-config
+        env:
+        - name: VERSION
+          value: "1.0.1"
+        - name: DEPLOYMENT_VARIANT
+          value: "green"
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        - name: logs
+          mountPath: /app/logs
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 250m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: aceest-pvc
+      - name: logs
+        emptyDir: {}
+      terminationGracePeriodSeconds: 30

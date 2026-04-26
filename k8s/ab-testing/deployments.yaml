@@ -1,0 +1,161 @@
+---
+# Variant A Deployment (v1.0.0) - Feature A
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aceest-variant-a
+  namespace: aceest-production
+  labels:
+    app: aceest
+    variant: a
+    deployment-strategy: ab-testing
+spec:
+  replicas: 2  # 50% traffic
+  selector:
+    matchLabels:
+      app: aceest
+      variant: a
+  template:
+    metadata:
+      labels:
+        app: aceest
+        variant: a
+        tier: api
+      annotations:
+        deployment.type: "variant-a"
+        version: "1.0.0"
+    spec:
+      serviceAccountName: aceest-sa
+      containers:
+      - name: aceest-api
+        image: docker.io/library/aceest-fitness-api:v1.0.0  # Version A
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 5000
+        envFrom:
+        - configMapRef:
+            name: aceest-config
+        env:
+        - name: VERSION
+          value: "1.0.0"
+        - name: DEPLOYMENT_VARIANT
+          value: "a"
+        - name: FEATURE_FLAG_UI
+          value: "old"
+        - name: AB_TEST_GROUP
+          value: "A"
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        - name: logs
+          mountPath: /app/logs
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 250m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: aceest-pvc
+      - name: logs
+        emptyDir: {}
+      terminationGracePeriodSeconds: 30
+
+---
+# Variant B Deployment (v1.0.1) - Feature B
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aceest-variant-b
+  namespace: aceest-production
+  labels:
+    app: aceest
+    variant: b
+    deployment-strategy: ab-testing
+spec:
+  replicas: 2  # 50% traffic
+  selector:
+    matchLabels:
+      app: aceest
+      variant: b
+  template:
+    metadata:
+      labels:
+        app: aceest
+        variant: b
+        tier: api
+      annotations:
+        deployment.type: "variant-b"
+        version: "1.0.1"
+    spec:
+      serviceAccountName: aceest-sa
+      containers:
+      - name: aceest-api
+        image: docker.io/library/aceest-fitness-api:v1.0.1  # Version B
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 5000
+        envFrom:
+        - configMapRef:
+            name: aceest-config
+        env:
+        - name: VERSION
+          value: "1.0.1"
+        - name: DEPLOYMENT_VARIANT
+          value: "b"
+        - name: FEATURE_FLAG_UI
+          value: "new"
+        - name: AB_TEST_GROUP
+          value: "B"
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        - name: logs
+          mountPath: /app/logs
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 250m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: aceest-pvc
+      - name: logs
+        emptyDir: {}
+      terminationGracePeriodSeconds: 30

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: aceest-canary-service
+  namespace: aceest-production
+  labels:
+    app: aceest
+    deployment-strategy: canary
+spec:
+  type: LoadBalancer
+  selector:
+    app: aceest
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000
+      protocol: TCP
+  # Note: Both stable (2 replicas) and canary (1 replica) pods selected
+  # Traffic distribution: ~67% to stable, ~33% to canary (by replica count)

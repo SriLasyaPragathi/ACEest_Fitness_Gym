@@ -1,0 +1,186 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aceest-api
+  namespace: aceest-production
+  labels:
+    app: aceest
+    tier: api
+    version: "1.0"
+  annotations:
+    description: "ACEest Fitness & Gym Management API"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # One extra pod during update
+      maxUnavailable: 0  # Zero downtime
+  selector:
+    matchLabels:
+      app: aceest
+      tier: api
+  template:
+    metadata:
+      labels:
+        app: aceest
+        tier: api
+        version: "1.0"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5000"
+    spec:
+      serviceAccountName: aceest-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      
+      containers:
+      - name: aceest-api
+        image: docker.io/library/aceest-fitness-api:latest  # Replace with your Docker Hub image
+        imagePullPolicy: IfNotPresent
+        
+        ports:
+        - name: http
+          containerPort: 5000
+          protocol: TCP
+        
+        # Environment variables from ConfigMap
+        envFrom:
+        - configMapRef:
+            name: aceest-config
+        
+        # Additional environment variables
+        env:
+        - name: DB_PATH
+          value: "/app/data/aceest_fitness.db"
+        - name: FLASK_APP
+          value: "app.py"
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        
+        # Volume mounts
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        - name: logs
+          mountPath: /app/logs
+        
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        # Resource limits and requests
+        resources:
+          requests:
+            cpu: 250m        # 0.25 CPU cores
+            memory: 128Mi    # 128 MB
+          limits:
+            cpu: 500m        # 0.5 CPU cores max
+            memory: 256Mi    # 256 MB max
+        
+        # Security context for container
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+              - ALL
+      
+      # Image pull secrets (if using private Docker Hub repo)
+      # imagePullSecrets:
+      # - name: docker-hub-secret
+      
+      # Volumes
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: aceest-pvc
+      - name: logs
+        emptyDir: {}
+      
+      # Pod disruption budget
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - aceest
+              topologyKey: kubernetes.io/hostname
+      
+      # Restart policy
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+
+---
+# ServiceAccount for RBAC
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: aceest-sa
+  namespace: aceest-production
+  labels:
+    app: aceest
+
+---
+# ClusterRole for read-only operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: aceest-reader
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch"]
+
+---
+# ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: aceest-reader-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: aceest-reader
+subjects:
+- kind: ServiceAccount
+  name: aceest-sa
+  namespace: aceest-production

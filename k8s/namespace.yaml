@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aceest-production
+  labels:
+    name: aceest-production
+    environment: production
+  annotations:
+    description: "Production namespace for ACEest Fitness & Gym API"
