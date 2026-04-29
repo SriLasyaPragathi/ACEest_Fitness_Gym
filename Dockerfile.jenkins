@@ -1,0 +1,72 @@
+FROM jenkins/jenkins:lts
+
+USER root
+
+# Install Python 3, Docker CLI, kubectl, and other dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-venv \
+    python3-pip \
+    docker.io \
+    git \
+    curl \
+    wget \
+    build-essential \
+    libssl-dev \
+    libffi-dev \
+    apt-transport-https \
+    gnupg2 \
+    lsb-release \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install kubectl from official Kubernetes repository
+RUN curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://dl.k8s.io/apt/doc/apt-key.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | tee /etc/apt/sources.list.d/kubernetes.list && \
+    apt-get update && apt-get install -y kubectl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create symbolic link for Python
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
+# Install pip
+RUN apt-get install -y python3-pip
+
+# Allow Jenkins user to use Docker
+RUN groupadd -f docker && usermod -aG docker jenkins
+
+# Create init script directory
+RUN mkdir -p /usr/share/jenkins/ref/init.groovy.d
+
+# Create Groovy script to disable security completely
+RUN cat > /usr/share/jenkins/ref/init.groovy.d/00-disable-security.groovy << 'EOF'
+import jenkins.model.Jenkins
+import hudson.security.HudsonPrivateSecurityRealm
+import hudson.security.FullControlOnceLoggedInAuthorizationStrategy
+
+println("=== DISABLING JENKINS SECURITY ===")
+
+try {
+def instance = Jenkins.getInstance()
+
+// Disable security entirely
+instance.setSecurityRealm(null)
+instance.setAuthorizationStrategy(null)
+instance.setSlaveAgentPort(-1)
+
+instance.save()
+println("SUCCESS: Jenkins security disabled - NO LOGIN REQUIRED")
+} catch (Exception e) {
+println("ERROR: " + e.toString())
+e.printStackTrace()
+}
+EOF
+
+# Set environment to skip setup wizard
+ENV JENKINS_OPTS="--httpPort=8080"
+ENV JAVA_OPTS="-Djenkins.install.runSetupWizard=false"
+
+USER jenkins
+
+
+
