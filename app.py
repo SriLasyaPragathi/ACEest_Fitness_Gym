@@ -17,7 +17,11 @@ __version__ = "1.0.0"
 
 # Application Configuration
 DB_NAME = "aceest_fitness.db"
-DATABASE_PATH = os.path.join(os.path.dirname(__file__), DB_NAME)
+# Use /app/data for Docker, or current directory for local development
+if os.path.exists('/app/data'):
+    DATABASE_PATH = os.path.join('/app/data', DB_NAME)
+else:
+    DATABASE_PATH = os.path.join(os.path.dirname(__file__), DB_NAME)
 
 app = Flask(__name__)
 app.config['JSON_SORT_KEYS'] = False

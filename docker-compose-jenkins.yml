@@ -5,13 +5,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.jenkins
-    image: jenkins-aceest-custom:latest
+    image: jenkins-aceest:latest
     container_name: jenkins-aceest
     restart: always
 
     ports:
-      - "8080:8080" # Jenkins web UI
-      - "50000:50000" # Jenkins agent communication port
+      - "8080:8080"
+      - "50000:50000"
 
     volumes:
       - jenkins_home:/var/jenkins_home
@@ -19,6 +19,7 @@ services:
 
     environment:
       - JENKINS_OPTS=--httpPort=8080
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
 
     user: root
 

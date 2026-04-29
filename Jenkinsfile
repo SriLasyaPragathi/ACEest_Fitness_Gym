@@ -136,15 +136,27 @@ pipeline {
             steps {
                 echo '🐳 Building Docker image...'
                 sh '''
+                    # Capture APP_VERSION from app.py
+                    APP_VERSION=$(grep -oP '__version__\\s*=\\s*"\\K[^"]+' app.py || echo '1.0.0')
+                    echo "Detected app version: ${APP_VERSION}"
+                    
+                    # Construct all image tags
+                    BUILD_TAG="${BUILD_NUMBER}-$(git rev-parse --short HEAD)"
+                    DOCKER_IMAGE="docker.io/aceest-fitness-api:${BUILD_TAG}"
+                    DOCKER_IMAGE_LATEST="docker.io/aceest-fitness-api:latest"
+                    DOCKER_VERSION_TAG="docker.io/aceest-fitness-api:v${APP_VERSION}"
+                    
                     echo "Building image: ${DOCKER_IMAGE}"
                     echo "Building version-tagged image: ${DOCKER_VERSION_TAG}"
+                    
                     docker build \
-                        -t ${DOCKER_IMAGE} \
-                        -t ${DOCKER_IMAGE_LATEST} \
-                        -t ${DOCKER_VERSION_TAG} \
-                        --label version=${APP_VERSION} \
-                        --label build=${BUILD_NUMBER} \
+                        -t "${DOCKER_IMAGE}" \
+                        -t "${DOCKER_IMAGE_LATEST}" \
+                        -t "${DOCKER_VERSION_TAG}" \
+                        --label version="${APP_VERSION}" \
+                        --label build="${BUILD_NUMBER}" \
                         .
+                    
                     echo "✅ Docker image built successfully with tags:"
                     docker images | grep aceest || true
                 '''
@@ -201,19 +213,23 @@ pipeline {
             steps {
                 echo '📤 Pushing Docker images to registry...'
                 sh '''
+                    # Capture APP_VERSION from app.py
+                    APP_VERSION=$(grep -oP '__version__\\s*=\\s*"\\K[^"]+' app.py || echo '1.0.0')
+                    BUILD_TAG="${BUILD_NUMBER}-$(git rev-parse --short HEAD)"
+                    
                     echo "Pushing images to Docker registry..."
                     echo "Note: Ensure Docker credentials are configured in Jenkins (System → Credentials)"
                     
                     # If running with credentials, uncomment these lines:
                     # echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin
-                    # docker push ${DOCKER_IMAGE}
-                    # docker push ${DOCKER_IMAGE_LATEST}
-                    # docker push ${DOCKER_VERSION_TAG}
+                    # docker push "docker.io/aceest-fitness-api:${BUILD_TAG}"
+                    # docker push "docker.io/aceest-fitness-api:latest"
+                    # docker push "docker.io/aceest-fitness-api:v${APP_VERSION}"
                     
                     echo "✅ Images ready for push to registry:"
-                    echo "  - ${DOCKER_IMAGE}"
-                    echo "  - ${DOCKER_IMAGE_LATEST}"
-                    echo "  - ${DOCKER_VERSION_TAG} (v${APP_VERSION})"
+                    echo "  - docker.io/aceest-fitness-api:${BUILD_TAG}"
+                    echo "  - docker.io/aceest-fitness-api:latest"
+                    echo "  - docker.io/aceest-fitness-api:v${APP_VERSION}"
                     
                     # Log build metadata
                     echo "Build Metadata:" > build-metadata.txt
