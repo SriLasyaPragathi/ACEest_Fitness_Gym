@@ -48,6 +48,37 @@ aceest_fitness.db
 
 # Reports
 *.pdf
+
+# Temporary documentation (keep only README.md and CI_CD_ARCHITECTURE_REPORT.md)
+PHASE_*.md
+ASSIGNMENT_*.md
+API_DOCUMENTATION.md
+CONTRIBUTING.md
+DEPLOYMENT.md
+*_STATUS_REPORT.md
+*_SUMMARY.md
+*_GUIDE.md
+QUICK_ACTION_GUIDE.md
+MASTER_*.md
+MINIKUBE_FIX.md
+VISUAL_ARCHITECTURE.md
+TEST_FAILURE_DIAGNOSIS.md
+TEST_FIXES_APPLIED.md
+
+# Test output and validation files
+test_output_full.txt
+test_results.txt
+test_results_full.txt
+test_run.txt
+validation.yaml
+verify-phase-6.sh
+
+# Old version files
+Aceestver-*.py
+Aceestver*.py
+assignment_extracted.txt
+assignment_text.txt
+Introduction\ to\ DevOps\ Assignment\ -\ 1\ 2026.docx
 *_report.pdf
 
 # Environment
