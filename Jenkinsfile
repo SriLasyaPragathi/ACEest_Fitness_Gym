@@ -183,29 +183,27 @@ pipeline {
             steps {
                 echo '=== Running integration tests in Docker...'
                 sh '''
+                    # Use a random port to avoid conflicts
+                    TEST_PORT=$((5000 + RANDOM % 1000))
+                    echo "Testing on dynamic port: $TEST_PORT"
+                    
                     # Clean up any previous test containers
                     echo "Cleaning up previous test containers..."
-                    docker stop aceest-test-${BUILD_NUMBER} 2>/dev/null || true
-                    docker rm aceest-test-${BUILD_NUMBER} 2>/dev/null || true
+                    docker ps -a --filter="name=aceest-test" --format="{{.ID}}" | xargs -r docker stop 2>/dev/null || true
+                    docker ps -a --filter="name=aceest-test" --format="{{.ID}}" | xargs -r docker rm 2>/dev/null || true
                     sleep 2
                     
-                    # Kill any process using port 5000 (cleanup from previous runs)
-                    echo "Ensuring port 5000 is available..."
-                    docker ps -a --filter="expose=5000" --format="{{.ID}}" | xargs -r docker stop 2>/dev/null || true
-                    docker ps -a --filter="expose=5000" --format="{{.ID}}" | xargs -r docker rm 2>/dev/null || true
-                    sleep 2
-                    
-                    echo "Starting container for integration tests..."
-                    docker run -d --name aceest-test-${BUILD_NUMBER} -p 5000:5000 ${DOCKER_IMAGE} || (
-                        echo "Failed to start container on port 5000, attempting cleanup and retry..."
-                        docker ps -a | grep 5000 | awk '{print $1}' | xargs -r docker kill 2>/dev/null || true
+                    echo "Starting container for integration tests on port $TEST_PORT..."
+                    docker run -d --name aceest-test-${BUILD_NUMBER} -p ${TEST_PORT}:5000 ${DOCKER_IMAGE} 2>/dev/null || {
+                        echo "Failed to start container on port $TEST_PORT, cleaning up and retrying..."
+                        docker ps -a --filter="name=aceest-test" --format="{{.ID}}" | xargs -r docker kill 2>/dev/null || true
                         sleep 2
-                        docker run -d --name aceest-test-${BUILD_NUMBER} -p 5000:5000 ${DOCKER_IMAGE}
-                    )
+                        docker run -d --name aceest-test-${BUILD_NUMBER} -p ${TEST_PORT}:5000 ${DOCKER_IMAGE}
+                    }
                     
                     sleep 5
                     
-                    echo "Running health check..."
+                    echo "Running health check on port $TEST_PORT..."
                     docker exec aceest-test-${BUILD_NUMBER} curl -s http://localhost:5000/health || sleep 3
                     
                     echo "Running tests in container..."
@@ -393,8 +391,8 @@ pipeline {
             }
             post {
                 always {
-                    // Archive K8s test results
-                    junit 'k8s-test-results.xml' || true
+                    // Archive K8s test results (if file exists)
+                    sh 'test -f k8s-test-results.xml && junit k8s-test-results.xml || echo "No K8s test results found"'
                 }
                 failure {
                     sh '''
