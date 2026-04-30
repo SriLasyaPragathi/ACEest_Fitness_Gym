@@ -181,26 +181,44 @@ pipeline {
         // ============ STAGE 9: INTEGRATION TEST ============
         stage('Integration Tests') {
             steps {
-                echo '🔗 Running integration tests in Docker...'
+                echo '=== Running integration tests in Docker...'
                 sh '''
+                    # Clean up any previous test containers
+                    echo "Cleaning up previous test containers..."
+                    docker stop aceest-test-${BUILD_NUMBER} 2>/dev/null || true
+                    docker rm aceest-test-${BUILD_NUMBER} 2>/dev/null || true
+                    sleep 2
+                    
+                    # Kill any process using port 5000 (cleanup from previous runs)
+                    echo "Ensuring port 5000 is available..."
+                    docker ps -a --filter="expose=5000" --format="{{.ID}}" | xargs -r docker stop 2>/dev/null || true
+                    docker ps -a --filter="expose=5000" --format="{{.ID}}" | xargs -r docker rm 2>/dev/null || true
+                    sleep 2
+                    
                     echo "Starting container for integration tests..."
-                    docker run -d --name aceest-test-${BUILD_NUMBER} -p 5000:5000 ${DOCKER_IMAGE}
+                    docker run -d --name aceest-test-${BUILD_NUMBER} -p 5000:5000 ${DOCKER_IMAGE} || (
+                        echo "Failed to start container on port 5000, attempting cleanup and retry..."
+                        docker ps -a | grep 5000 | awk '{print $1}' | xargs -r docker kill 2>/dev/null || true
+                        sleep 2
+                        docker run -d --name aceest-test-${BUILD_NUMBER} -p 5000:5000 ${DOCKER_IMAGE}
+                    )
+                    
                     sleep 5
                     
                     echo "Running health check..."
-                    docker exec aceest-test-${BUILD_NUMBER} python -c "import requests; r = requests.get('http://localhost:5000/health'); print(r.status_code, r.json())" || sleep 3
+                    docker exec aceest-test-${BUILD_NUMBER} curl -s http://localhost:5000/health || sleep 3
                     
                     echo "Running tests in container..."
                     docker exec aceest-test-${BUILD_NUMBER} pytest tests/ -v --tb=short || exit 1
                     
-                    echo "✅ Integration tests passed"
+                    echo "[OK] Integration tests passed"
                     docker stop aceest-test-${BUILD_NUMBER} || true
                     docker rm aceest-test-${BUILD_NUMBER} || true
                 '''
             }
             post {
                 always {
-                    sh 'docker stop aceest-test-${BUILD_NUMBER} || true; docker rm aceest-test-${BUILD_NUMBER} || true'
+                    sh 'docker stop aceest-test-${BUILD_NUMBER} 2>/dev/null || true; docker rm aceest-test-${BUILD_NUMBER} 2>/dev/null || true'
                 }
             }
         }
