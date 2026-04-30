@@ -382,56 +382,56 @@ pipeline {
                 branch 'main'
             }
             steps {
-                echo '🔄 Testing advanced deployment strategies...'
+                echo '=== Testing advanced deployment strategies...'
                 sh '''
-                    echo "╔════════════════════════════════════════════════════════════╗"
-                    echo "║   Advanced Deployment Strategies - Phase 6 Implementation   ║"
-                    echo "╚════════════════════════════════════════════════════════════╝"
+                    echo "=========================================================="
+                    echo "Advanced Deployment Strategies - Phase 6 Implementation"
+                    echo "=========================================================="
                     echo ""
                     
                     # Verify deployment strategies are available
                     echo "Step 1: Validating deployment strategy templates..."
                     
                     if [ -d "k8s/blue-green" ] && [ -f "k8s/blue-green/deploy.sh" ]; then
-                        echo "✅ Blue-Green strategy: READY"
+                        echo "[OK] Blue-Green strategy: READY"
                     else
-                        echo "❌ Blue-Green strategy: NOT FOUND"
+                        echo "[FAIL] Blue-Green strategy: NOT FOUND"
                         exit 1
                     fi
                     
                     if [ -d "k8s/canary" ] && [ -f "k8s/canary/deploy.sh" ]; then
-                        echo "✅ Canary strategy: READY"
+                        echo "[OK] Canary strategy: READY"
                     else
-                        echo "❌ Canary strategy: NOT FOUND"
+                        echo "[FAIL] Canary strategy: NOT FOUND"
                         exit 1
                     fi
                     
                     if [ -d "k8s/shadow" ] && [ -f "k8s/shadow/deploy.sh" ]; then
-                        echo "✅ Shadow strategy: READY"
+                        echo "[OK] Shadow strategy: READY"
                     else
-                        echo "❌ Shadow strategy: NOT FOUND"
+                        echo "[FAIL] Shadow strategy: NOT FOUND"
                         exit 1
                     fi
                     
                     if [ -d "k8s/a-b-testing" ] && [ -f "k8s/a-b-testing/deploy.sh" ]; then
-                        echo "✅ A/B Testing strategy: READY"
+                        echo "[OK] A/B Testing strategy: READY"
                     else
-                        echo "❌ A/B Testing strategy: NOT FOUND"
+                        echo "[FAIL] A/B Testing strategy: NOT FOUND"
                         exit 1
                     fi
                     
                     if [ -d "k8s/rollback" ] && [ -f "k8s/rollback/rollback.sh" ]; then
-                        echo "✅ Rollback mechanism: READY"
+                        echo "[OK] Rollback mechanism: READY"
                     else
-                        echo "❌ Rollback mechanism: NOT FOUND"
+                        echo "[FAIL] Rollback mechanism: NOT FOUND"
                         exit 1
                     fi
                     
                     if [ -f "deploy-strategy.sh" ]; then
-                        echo "✅ Deployment strategy orchestrator: READY"
+                        echo "[OK] Deployment strategy orchestrator: READY"
                         chmod +x deploy-strategy.sh
                     else
-                        echo "❌ Deployment strategy orchestrator: NOT FOUND"
+                        echo "[FAIL] Deployment strategy orchestrator: NOT FOUND"
                         exit 1
                     fi
                     
@@ -445,34 +445,34 @@ pipeline {
                     
                     echo ""
                     echo "Step 3: Available deployment strategies:"
-                    echo "  1. 🔵🟢 Blue-Green   - Zero-downtime deployment (instant rollback)"
-                    echo "  2. 🐤  Canary      - Gradual rollout with traffic shift"
-                    echo "  3. 👻  Shadow      - Mirror production traffic to new version"
-                    echo "  4. 📊  A/B Test    - Split traffic for user segment testing"
-                    echo "  5. 🔄  Rollback    - Automatic recovery on failure"
-                    echo "  6. 📈  Rolling     - Standard K8s rolling update"
+                    echo "  1. Blue-Green     - Zero-downtime deployment (instant rollback)"
+                    echo "  2. Canary         - Gradual rollout with traffic shift"
+                    echo "  3. Shadow         - Mirror production traffic to new version"
+                    echo "  4. A/B Testing    - Split traffic for user segment testing"
+                    echo "  5. Rollback       - Automatic recovery on failure"
+                    echo "  6. Rolling Update - Standard Kubernetes rolling updates"
                     
                     echo ""
                     echo "Step 4: Testing rollback mechanism..."
                     if bash k8s/rollback/rollback.sh; then
-                        echo "✅ Rollback mechanism validated"
+                        echo "[OK] Rollback mechanism validated"
                     else
-                        echo "⚠️  Rollback mechanism validation skipped (K8s may not be available)"
+                        echo "[WARN] Rollback mechanism validation skipped (K8s may not be available)"
                     fi
                     
                     echo ""
                     echo "Step 5: Deployment strategy orchestrator help..."
                     if bash deploy-strategy.sh help; then
-                        echo "✅ Orchestrator configured and ready"
+                        echo "[OK] Orchestrator configured and ready"
                     else
-                        echo "❌ Orchestrator configuration failed"
+                        echo "[FAIL] Orchestrator configuration failed"
                         exit 1
                     fi
                     
                     echo ""
-                    echo "╔════════════════════════════════════════════════════════════╗"
-                    echo "║  ✅ All deployment strategies validated and ready!          ║"
-                    echo "╚════════════════════════════════════════════════════════════╝"
+                    echo "=========================================================="
+                    echo "All deployment strategies validated and ready!"
+                    echo "=========================================================="
                     echo ""
                     echo "To execute deployment strategies:"
                     echo "  ./deploy-strategy.sh blue-green    # Deploy with Blue-Green"
