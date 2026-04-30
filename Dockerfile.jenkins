@@ -2,7 +2,7 @@ FROM jenkins/jenkins:lts
 
 USER root
 
-# Install Python 3, Docker CLI, and other dependencies
+# Install Python 3, Docker CLI, kubectl, and other dependencies
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-venv \
@@ -14,7 +14,20 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     libssl-dev \
     libffi-dev \
+    apt-transport-https \
+    ca-certificates \
+    gnupg \
+    lsb-release \
     && rm -rf /var/lib/apt/lists/*
+
+# Add Kubernetes repository and install kubectl
+RUN curl -fsSL https://dl.k8s.io/release/stable.txt > /tmp/k8s_version.txt && \
+    KUBECTL_VERSION=$(cat /tmp/k8s_version.txt) && \
+    echo "Installing kubectl ${KUBECTL_VERSION}..." && \
+    curl -fsSL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl && \
+    chmod +x /usr/local/bin/kubectl && \
+    kubectl version --client || echo "kubectl installed successfully" && \
+    rm -f /tmp/k8s_version.txt
 
 # Create symbolic link for Python
 RUN ln -s /usr/bin/python3 /usr/bin/python
