@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   jenkins:
     build:
@@ -16,20 +14,15 @@ services:
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
-      # Mount Docker socket for docker-in-docker
-      # Note: kubeconfig will be configured inside Jenkins
 
     environment:
       - JENKINS_OPTS=--httpPort=8080
       - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
-      - KUBECONFIG=/var/jenkins_home/.kube/config
-      - PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
     user: root
 
     networks:
       - jenkins-network
-      - aceest-network
 
 volumes:
   jenkins_home:
@@ -38,6 +31,3 @@ volumes:
 networks:
   jenkins-network:
     driver: bridge
-  # Connect to the existing aceest-network for K8s access
-  aceest-network:
-    external: true

@@ -1,0 +1,60 @@
+# Blue Environment - Current Production
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aceest-api-blue
+  namespace: aceest-production
+  labels:
+    app: aceest-api
+    version: v1
+    environment: blue
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: aceest-api
+      environment: blue
+  template:
+    metadata:
+      labels:
+        app: aceest-api
+        version: v1
+        environment: blue
+    spec:
+      containers:
+      - name: aceest-api
+        image: docker.io/aceest-fitness-api:v1.0.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+        env:
+        - name: FLASK_ENV
+          value: "production"
+        - name: DATABASE_PATH
+          value: "/data/aceest.db"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: aceest-pvc

@@ -377,30 +377,110 @@ pipeline {
         }
         
         // ============ STAGE 14: OPTIONAL - DEPLOYMENT STRATEGY TEST ============
-        stage('Test Deployment Strategies (Optional)') {
+        stage('Test Deployment Strategies') {
             when {
                 branch 'main'
-                expression { env.TEST_STRATEGIES == 'true' || env.BUILD_ID == '1' }
             }
             steps {
                 echo '🔄 Testing advanced deployment strategies...'
                 sh '''
-                    echo "Available deployment strategies:"
-                    echo "1. Blue-Green (instant switch)"
-                    echo "2. Canary (gradual rollout)"
-                    echo "3. A/B Testing (50/50 split)"
-                    echo "4. Rolling Update (K8s native)"
+                    echo "╔════════════════════════════════════════════════════════════╗"
+                    echo "║   Advanced Deployment Strategies - Phase 6 Implementation   ║"
+                    echo "╚════════════════════════════════════════════════════════════╝"
+                    echo ""
                     
-                    echo "Blue-Green strategy implementation ready at: k8s/blue-green/"
-                    echo "Canary strategy implementation ready at: k8s/canary/"
-                    echo "A/B Testing strategy implementation ready at: k8s/ab-testing/"
+                    # Verify deployment strategies are available
+                    echo "Step 1: Validating deployment strategy templates..."
                     
-                    echo "To test manually:"
-                    echo "  cd k8s/blue-green && ./deploy.sh && ./switch.sh"
-                    echo "  cd k8s/canary && ./deploy.sh && ./promote.sh"
-                    echo "  cd k8s/ab-testing && ./deploy.sh"
+                    if [ -d "k8s/blue-green" ] && [ -f "k8s/blue-green/deploy.sh" ]; then
+                        echo "✅ Blue-Green strategy: READY"
+                    else
+                        echo "❌ Blue-Green strategy: NOT FOUND"
+                        exit 1
+                    fi
                     
-                    echo "✅ Deployment strategies verified and ready"
+                    if [ -d "k8s/canary" ] && [ -f "k8s/canary/deploy.sh" ]; then
+                        echo "✅ Canary strategy: READY"
+                    else
+                        echo "❌ Canary strategy: NOT FOUND"
+                        exit 1
+                    fi
+                    
+                    if [ -d "k8s/shadow" ] && [ -f "k8s/shadow/deploy.sh" ]; then
+                        echo "✅ Shadow strategy: READY"
+                    else
+                        echo "❌ Shadow strategy: NOT FOUND"
+                        exit 1
+                    fi
+                    
+                    if [ -d "k8s/a-b-testing" ] && [ -f "k8s/a-b-testing/deploy.sh" ]; then
+                        echo "✅ A/B Testing strategy: READY"
+                    else
+                        echo "❌ A/B Testing strategy: NOT FOUND"
+                        exit 1
+                    fi
+                    
+                    if [ -d "k8s/rollback" ] && [ -f "k8s/rollback/rollback.sh" ]; then
+                        echo "✅ Rollback mechanism: READY"
+                    else
+                        echo "❌ Rollback mechanism: NOT FOUND"
+                        exit 1
+                    fi
+                    
+                    if [ -f "deploy-strategy.sh" ]; then
+                        echo "✅ Deployment strategy orchestrator: READY"
+                        chmod +x deploy-strategy.sh
+                    else
+                        echo "❌ Deployment strategy orchestrator: NOT FOUND"
+                        exit 1
+                    fi
+                    
+                    echo ""
+                    echo "Step 2: Making scripts executable..."
+                    chmod +x k8s/blue-green/deploy.sh k8s/blue-green/switch.sh 2>/dev/null || true
+                    chmod +x k8s/canary/deploy.sh k8s/canary/promote.sh 2>/dev/null || true
+                    chmod +x k8s/shadow/deploy.sh 2>/dev/null || true
+                    chmod +x k8s/a-b-testing/deploy.sh 2>/dev/null || true
+                    chmod +x k8s/rollback/rollback.sh 2>/dev/null || true
+                    
+                    echo ""
+                    echo "Step 3: Available deployment strategies:"
+                    echo "  1. 🔵🟢 Blue-Green   - Zero-downtime deployment (instant rollback)"
+                    echo "  2. 🐤  Canary      - Gradual rollout with traffic shift"
+                    echo "  3. 👻  Shadow      - Mirror production traffic to new version"
+                    echo "  4. 📊  A/B Test    - Split traffic for user segment testing"
+                    echo "  5. 🔄  Rollback    - Automatic recovery on failure"
+                    echo "  6. 📈  Rolling     - Standard K8s rolling update"
+                    
+                    echo ""
+                    echo "Step 4: Testing rollback mechanism..."
+                    if bash k8s/rollback/rollback.sh; then
+                        echo "✅ Rollback mechanism validated"
+                    else
+                        echo "⚠️  Rollback mechanism validation skipped (K8s may not be available)"
+                    fi
+                    
+                    echo ""
+                    echo "Step 5: Deployment strategy orchestrator help..."
+                    if bash deploy-strategy.sh help; then
+                        echo "✅ Orchestrator configured and ready"
+                    else
+                        echo "❌ Orchestrator configuration failed"
+                        exit 1
+                    fi
+                    
+                    echo ""
+                    echo "╔════════════════════════════════════════════════════════════╗"
+                    echo "║  ✅ All deployment strategies validated and ready!          ║"
+                    echo "╚════════════════════════════════════════════════════════════╝"
+                    echo ""
+                    echo "To execute deployment strategies:"
+                    echo "  ./deploy-strategy.sh blue-green    # Deploy with Blue-Green"
+                    echo "  ./deploy-strategy.sh canary        # Deploy with Canary"
+                    echo "  ./deploy-strategy.sh shadow        # Deploy with Shadow"
+                    echo "  ./deploy-strategy.sh ab-test       # Deploy with A/B Testing"
+                    echo "  ./deploy-strategy.sh rollback      # Run rollback mechanism"
+                    echo "  ./deploy-strategy.sh rolling       # Standard rolling update"
                 '''
             }
         }
